@@ -309,7 +309,9 @@ if __name__ == '__main__':
     model_dir = args.model_dir
 
     train(data_dir, model_dir, args)
-    train
+    
+    train2(data_dir, model_dir, args)
 
-
+    train3(data_dir, model_dir, args)
+    
 
