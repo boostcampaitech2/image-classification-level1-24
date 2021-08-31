@@ -119,10 +119,10 @@ class MaskBaseDataset(Dataset):
         "normal": MaskLabels.NORMAL
     }
 
-    # image_paths = []
-    # mask_labels = []
-    # gender_labels = []
-    # age_labels = []
+    image_paths = []
+    mask_labels = []
+    gender_labels = []
+    age_labels = []
 
     def __init__(self, data_dir, mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246), val_ratio=0.2):
         self.data_dir = data_dir
@@ -135,10 +135,10 @@ class MaskBaseDataset(Dataset):
         self.calc_statistics()
 
     def setup(self):
-        self.image_paths = []
-        self.mask_labels = []
-        self.gender_labels = []
-        self.age_labels = []
+        # self.image_paths = []
+        # self.mask_labels = []
+        # self.gender_labels = []
+        # self.age_labels = []
 
 
         profiles = os.listdir(self.data_dir)
@@ -208,6 +208,10 @@ class MaskBaseDataset(Dataset):
     def read_image(self, index):
         image_path = self.image_paths[index]
         return Image.open(image_path)
+
+    @classmethod
+    def get_image_paths(cls):
+        return cls.image_paths
 
     @staticmethod
     def encode_multi_class(mask_label, gender_label, age_label) -> int:
