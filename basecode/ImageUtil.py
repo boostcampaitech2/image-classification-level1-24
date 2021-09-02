@@ -32,22 +32,22 @@ class EraseBackground():
     HUMAN_MODEL_NAME = 'u2net_human_seg'
 
     @classmethod
-    @dispatch(str, str)
+    #@dispatch(str, str)
     def save_image(cls, input_image_path : str, output_image_path : str):
         input_image = np.fromfile(input_image_path)
         erase_result = remove(input_image, model_name=cls.HUMAN_MODEL_NAME)
         background_erased_image = Image.open(io.BytesIO(erase_result)).convert("RGBA")
         background_erased_image.save(output_image_path)
     
-    @classmethod
-    @dispatch(np.ndarray, str)
-    def save_image(cls, input_image : np.ndarray, output_image_path : str):
-        erase_result = remove(input_image, model_name=cls.HUMAN_MODEL_NAME)
-        background_erased_image = Image.open(io.BytesIO(erase_result)).convert("RGBA")
-        background_erased_image.save(output_image_path)
+    # #@classmethod
+    # @dispatch(np.ndarray, str)
+    # def save_image(cls, input_image : np.ndarray, output_image_path : str):
+    #     erase_result = remove(input_image, model_name=cls.HUMAN_MODEL_NAME)
+    #     background_erased_image = Image.open(io.BytesIO(erase_result)).convert("RGBA")
+    #     background_erased_image.save(output_image_path)
 
     @classmethod
-    @dispatch(np.ndarray)
+    #@dispatch(np.ndarray)
     def get_image(cls, input_image : np.ndarray) -> np.ndarray:
         erase_result = remove(input_image, model_name=cls.HUMAN_MODEL_NAME)
         background_erased_image = Image.open(io.BytesIO(erase_result)).convert("RGBA")
