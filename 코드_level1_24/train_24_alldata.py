@@ -28,7 +28,6 @@ from albumentations.pytorch.transforms import ToTensorV2
 from torchvision import transforms
 from torchvision.transforms import Resize, ToTensor, Normalize, GaussianBlur, RandomRotation, ColorJitter
 from efficientnet_pytorch import EfficientNet
-from loss import create_criterion
 
 from dataset_24 import *
 
@@ -42,7 +41,8 @@ def seed_everything(seed):
     random.seed(seed)
 
 
-def train_24(data_dir, args):
+def train_all_data(data_dir, args):
+    print("Train all data start")
     seed_everything(args.seed)
     mean, std  = np.array([0.56019358, 0.52410121, 0.501457  ]), np.array([0.23318603, 0.24300033, 0.24567522])
     # dataset 및 Transform정의
@@ -51,32 +51,19 @@ def train_24(data_dir, args):
         albumentations.Normalize(mean=mean, std=std),
         ToTensorV2()
     ])
+
     dataset = MaskDataset(
         img_dir = data_dir,
-        transform=albu_transform
+        transform=albu_transform,
     )
-
-    # train dataset과 validation dataset을 8:2 비율로 나눕니다.
-    n_val = int(len(dataset) * 0.2)
-    n_train = len(dataset) - n_val
-    train_dataset, val_dataset = data.random_split(dataset, [n_train, n_val])
-    train_loader = data.DataLoader(
-        train_dataset,
+    all_loader = data.DataLoader(
+        dataset,
         batch_size=args.batch_size,
         num_workers=4, 
         shuffle=True
     )
 
-    val_loader = data.DataLoader(
-        val_dataset,
-        batch_size=args.batch_size,
-        num_workers=4,
-        shuffle=False
-    )
-    loader={'train':train_loader,
-       'val':val_loader}
-
-    # 모델 불러오기
+    # backborn모델 불러오기
     vision_model = EfficientNet.from_pretrained('efficientnet-b7', num_classes=18)
     torch.nn.init.xavier_uniform_(vision_model._fc.weight)
     stdv = 1. / math.sqrt(vision_model._fc.weight.size(1))
@@ -87,71 +74,36 @@ def train_24(data_dir, args):
     vision_model.to(device)
     LEARNING_RATE = args.lr 
     NUM_EPOCH = args.epochs
-    loss_fn = create_criterion(args.criterion)
+    class_weights = torch.FloatTensor([1.48816029143898, 1.9926829268292683, 9.843373493975903, 1.116120218579235, 1.0,
+ 7.495412844036697, 7.4408014571949, 9.963414634146341, 49.21686746987952, 5.580601092896175, 5.0, 37.477064220183486,
+ 7.4408014571949, 9.963414634146341, 49.21686746987952, 5.580601092896175, 5.0, 37.477064220183486]).to(device)
+    loss_fn = torch.nn.CrossEntropyLoss(weight=class_weights )
     optimizer = torch.optim.Adam(vision_model.parameters(), lr=LEARNING_RATE)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,'min')
     now = (dt.datetime.now().astimezone(timezone("Asia/Seoul")).strftime("%Y-%m-%d-%H-%M"))
-
-    best_val_f1 = 0.
-    best_val_loss = 9999.
-
+    
     torch.cuda.empty_cache()
-    os.makedirs("checkpoint")
 
-    for epoch in range(NUM_EPOCH):
-        for phase in ["train", "val"]:
-            running_loss = 0.
-            running_acc = 0.
-            n_iter = 0
-            epoch_f1 = 0
-            if  phase == "val":
-                confusion_matrix = np.zeros((18, 18))
+    for e in range(NUM_EPOCH):
+        vision_model.train()
+        for _, (images, labels) in enumerate(tqdm(all_loader)):
+            images = images.to(device)
+            labels = labels.to(device)
 
-            if phase == "train":
-                vision_model.train()
-            elif phase == "val":
-                vision_model.eval()
+            optimizer.zero_grad() # parameter gradient를 업데이트 전 초기화함
 
-            for ind, (images, labels) in enumerate(tqdm(loader[phase])):
-                images = images.to(device)
-                labels = labels.to(device)
-
-                optimizer.zero_grad() # parameter gradient를 업데이트 전 초기화함
-
-                with torch.set_grad_enabled(phase == "train"): # train 모드일 시에는 gradient를 계산
-                    logits = vision_model(images)
-                    _, preds = torch.max(logits, 1)
-                    loss = loss_fn(logits, labels)
-
-                    if phase == "train":
-                        loss.backward() 
-                        optimizer.step()
-                # Metrics 계산 부분 ==============================================================================
-                epoch_f1 += f1_score(labels.cpu().numpy(), preds.cpu().numpy(), average='macro')
-                n_iter += 1
-                if  phase == "val":
-                    for t, p in zip(labels.view(-1), preds.view(-1)): # confusion matrix에 값 입력, 언제가 최적일 지 몰라 매 epoch돌아감
-                        confusion_matrix[t.long(), p.long()] += 1    
-                running_loss += loss.item() * images.size(0) # 한 Batch에서의 loss 값, images.size(0) = batch size
-                running_acc += torch.sum(preds == labels.data) # 한 Batch에서의 Accuracy 값
+            with torch.set_grad_enabled(True): # train 모드일 시에는 gradient를 계산
+                logits = vision_model(images)
+                loss = loss_fn(logits, labels)
                 
-                
-        # 한 epoch이 모두 종료되었을 때,
-        epoch_loss = running_loss / len(loader[phase].dataset)
-        epoch_acc = running_acc / len(loader[phase].dataset)
-        epoch_f1 = epoch_f1/n_iter
-        scheduler.step(epoch_loss)
-        print(f"epoch-{epoch}의 {phase}-데이터 평균 Loss : {epoch_loss:.3f}, 평균 Accuracy : {epoch_acc:.3f}, 평균 f1:{epoch_f1}")
-        if phase == "val" and best_val_f1 < epoch_f1: 
-            best_val_f1 = epoch_f1
-            torch.save(vision_model, f"checkpoint/model_{now}.pt")
-            counter = 0
-        else:
-            counter += 1
-        if phase == "val" and best_val_loss > epoch_loss: 
-            best_val_loss = epoch_loss
+                _, preds = torch.max(logits, 1)
+                loss.backward() 
+                optimizer.step()
+        print(f'{e+1} epoch end')
+
     print("학습 종료!")
-    print(f"최고 accuracy : {best_val_accuracy:3f}, 최고 낮은 loss : {best_val_loss:3f}")
+    os.makedirs("save_model")
+    torch.save(vision_model,f"save_model/efficientnet-b7.pt")
 
 
     if __name__ == '__main__':
@@ -171,7 +123,6 @@ def train_24(data_dir, args):
 
         # Container environment
         parser.add_argument('--data_dir', type=str, default='/opt/ml/input/data/train/images')
-        parser.add_argument('--model_dir', type=str, default='./checkpoint')
 
         args = parser.parse_args()
         print(args)
@@ -179,4 +130,4 @@ def train_24(data_dir, args):
         data_dir = args.data_dir
         model_dir = args.model_dir
 
-        train_24(data_dir, model_dir, args)
+        train_all_data(data_dir, model_dir, args)
