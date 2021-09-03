@@ -136,7 +136,12 @@ def train(data_dir, model_dir, args):
     model = torch.nn.DataParallel(model)
 
     # -- loss & metric
-    criterion = create_criterion(args.criterion)  # default: cross_entropy
+    class_weights = torch.FloatTensor([1.48816029143898, 1.9926829268292683, 9.843373493975903, 1.116120218579235, 1.0,
+ 7.495412844036697, 7.4408014571949, 9.963414634146341, 49.21686746987952, 5.580601092896175, 5.0, 37.477064220183486,
+ 7.4408014571949, 9.963414634146341, 49.21686746987952, 5.580601092896175, 5.0, 37.477064220183486]).to(device)
+
+    # criterion = create_criterion(args.criterion)  # default: cross_entropy
+    criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
     opt_module = getattr(import_module("torch.optim"), args.optimizer)  # default: Adam
     optimizer = opt_module(
         filter(lambda p: p.requires_grad, model.parameters()),
