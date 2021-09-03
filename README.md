@@ -11,10 +11,15 @@
 
 ### Install Requirements
 - `pip install -r requirements.txt`
+- 
 ### Prepare Images
+```
 data
-  |  +- eval
-  |  +- train
+  +- eval
+  |  +- images
+  +- train
+  |  +- images
+```
 
 ### Training
 - `SM_CHANNEL_TRAIN=[train image dir] SM_MODEL_DIR=[model saving dir] python train.py`
