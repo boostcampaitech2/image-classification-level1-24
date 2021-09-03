@@ -1,3 +1,4 @@
+from dataset_24 import TestDataset
 import os
 import sys
 from glob import glob
@@ -31,7 +32,7 @@ from torchvision.transforms import Resize, ToTensor, Normalize, GaussianBlur, Ra
 def inference_24(data_dir, model_dir, args):
     test_dir = data_dir
     submission = pd.read_csv(os.path.join(test_dir, 'info.csv'))
-    image_dir = model_dir
+    image_dir = os.path.join(data_dir, 'images')
     image_paths = [os.path.join(image_dir, img_id) for img_id in submission.ImageID]
     # test dataset생성
     mean, std  = np.array([0.56019358, 0.52410121, 0.501457  ]), np.array([0.23318603, 0.24300033, 0.24567522])
@@ -58,8 +59,8 @@ def inference_24(data_dir, model_dir, args):
             pred = pred.argmax(dim=-1)
             all_predictions.extend(pred.cpu().numpy())
     submission['ans'] = all_predictions
-    os.makedirs("submission")
-    submission.to_csv(f'submission/submission.csv', index=False)
+    os.makedirs("/submission", exist_ok=True)
+    submission.to_csv(f'/submission/submission.csv', index=False)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -70,7 +71,7 @@ if __name__ == '__main__':
 
     # Container environment
     parser.add_argument('--data_dir', type=str, default='/opt/ml/input/data/eval')
-    parser.add_argument('--model_dir', type=str, default='./save_model')
+    parser.add_argument('--model_dir', type=str, default='/save_model')
 
     args = parser.parse_args()
     print(args)

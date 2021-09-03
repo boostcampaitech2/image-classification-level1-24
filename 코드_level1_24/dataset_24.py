@@ -152,10 +152,10 @@ class TestDataset(Dataset):
         self.transform = transform
 
     def __getitem__(self, index):
-        image = Image.open(self.img_paths[index])
+        image = np.array(Image.open(self.img_paths[index]))
 
         if self.transform:
-            image = self.transform(image)
+            image = self.transform(image=image)["image"]
         return image
 
     def __len__(self):
