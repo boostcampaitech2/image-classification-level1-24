@@ -11,7 +11,7 @@
 
 ### Install Requirements
 - `pip install -r requirements.txt`
-- 
+
 ### Prepare Images
 ```
 data
