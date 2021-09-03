@@ -170,8 +170,8 @@ def train_24(data_dir, args):
         parser.add_argument('--criterion', type=str, default='cross_entropy', help='criterion type (default: cross_entropy)')
 
         # Container environment
-        parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
-        parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR', './model'))
+        parser.add_argument('--data_dir', type=str, default='/opt/ml/input/data/train/images')
+        parser.add_argument('--model_dir', type=str, default='./checkpoint')
 
         args = parser.parse_args()
         print(args)
