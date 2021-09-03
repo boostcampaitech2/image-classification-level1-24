@@ -88,7 +88,13 @@ def train_24(data_dir, args):
     vision_model.to(device)
     LEARNING_RATE = args.lr 
     NUM_EPOCH = args.epochs
-    loss_fn = create_criterion(args.criterion)
+
+    class_weights = torch.FloatTensor([1.48816029143898, 1.9926829268292683, 9.843373493975903, 1.116120218579235, 1.0,
+ 7.495412844036697, 7.4408014571949, 9.963414634146341, 49.21686746987952, 5.580601092896175, 5.0, 37.477064220183486,
+ 7.4408014571949, 9.963414634146341, 49.21686746987952, 5.580601092896175, 5.0, 37.477064220183486]).to(device)
+ 
+    loss_fn = torch.nn.CrossEntropyLoss(weight=class_weights)
+    #loss_fn = create_criterion(args.criterion)
     optimizer = torch.optim.Adam(vision_model.parameters(), lr=LEARNING_RATE)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,'min')
     now = (dt.datetime.now().astimezone(timezone("Asia/Seoul")).strftime("%Y-%m-%d-%H-%M"))
