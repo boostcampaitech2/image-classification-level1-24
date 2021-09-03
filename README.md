@@ -3,7 +3,11 @@
 ## Getting Started    
 ### Dependencies
 - torch==1.6.0
-- torchvision==0.7.0                                                              
+- torchvision==0.7.0
+- Language : Python 3.8.5
+- Ubuntu 18.04.5 LTS
+- Server : V100
+                                                              
 
 ### Install Requirements
 - `pip install -r requirements.txt`
