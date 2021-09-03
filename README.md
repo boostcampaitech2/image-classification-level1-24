@@ -1,5 +1,5 @@
 # pstage_01_image_classification
-## 24조
+### 24조
 
 ## Getting Started    
 ### Dependencies
