@@ -22,14 +22,19 @@ data
 ```
 
 ### Training
-- `SM_CHANNEL_TRAIN=[train image dir] SM_MODEL_DIR=[model saving dir] python train.py`
+- `python train_24_alldata.py`
+- 최고 score달성한 모델 생성 파일
+- 최고 성능 달성한 parameters로 default값 지정되어 있음
+
+- `python train_24.py`
+- 모델 실험 및 검증을 위한 train/validation data split이 이루어진 학습파일
 
 Model | GPUs | Image size | Training Epochs | Training Time
 ------------ | ------------- | ------------- | ------------- | -------------
 efficientnet-b7 | V100 | 512/2, 384/2 | 15 | 3 hours
 
 ### Inference
-- `SM_CHANNEL_EVAL=[eval image dir] SM_CHANNEL_MODEL=[model saved dir] SM_OUTPUT_DATA_DIR=[inference output dir] python inference.py`
+- `python inference_24.py`
 
-### Evaluation
-- `SM_GROUND_TRUTH_DIR=[GT dir] SM_OUTPUT_DATA_DIR=[inference output dir] python evaluation.py`
+### Datasets
+- dataset_24.py
