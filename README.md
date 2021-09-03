@@ -13,7 +13,6 @@
 - `pip install -r requirements.txt`
 ### Prepare Images
 data
-  +- data
   |  +- eval
   |  +- train
 
