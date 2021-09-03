@@ -47,13 +47,14 @@ def get_img_mean_std(img_dir):
     return np.mean(img_info["means"], axis=0) / 255., np.mean(img_info["stds"], axis=0) / 255.
 
 class MaskDataset(data.Dataset):
-    def __init__(self, img_dir, transform=None):
+    def __init__(self, img_dir, val_ratio, transform=None):
         """
         img_dir: 학습 이미지 폴더(images)의 root directory(./train/train/images)
         transforms안 넣으면 totensor변환만 해서 내보냄
         """
         self.transform = transform
         self.img_dir = img_dir
+        self.val_ratio = val_ratio
         self.path = []
         self.label = []
         self.indexs = [] # 추가
@@ -119,7 +120,6 @@ def getDataloader(dataset, batch_size):
         dataset,
         batch_size=batch_size,
         num_workers=4,
-        drop_last=True,
         shuffle=True
     )
 
@@ -132,7 +132,6 @@ def getDataloader_split(dataset, batch_size):
         train_dataset,
         batch_size=batch_size,
         num_workers=4,
-        drop_last=True,
         shuffle=True
     )
     
@@ -140,7 +139,6 @@ def getDataloader_split(dataset, batch_size):
         val_dataset,
         batch_size=batch_size,
         num_workers=4,
-        drop_last=True,
         shuffle=False
     )
 
