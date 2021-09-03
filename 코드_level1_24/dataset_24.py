@@ -16,10 +16,11 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import torch.utils.data as data
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Subset
 import torchvision
 from torchvision import transforms
 from torchvision.transforms import Resize, ToTensor, Normalize, GaussianBlur, RandomRotation, ColorJitter
+from pandas_streaming.df import train_test_apart_stratify
 
 def get_img_mean_std(img_dir):
     """
@@ -29,6 +30,7 @@ def get_img_mean_std(img_dir):
     Returns:
         mean, std
     """
+    img_info = dict(means=[], stds=[])
     path = []
     filenames = os.listdir(img_dir)
     for i in filenames:
@@ -54,11 +56,14 @@ class MaskDataset(data.Dataset):
         self.img_dir = img_dir
         self.path = []
         self.label = []
+        self.indexs = [] # 추가
+        self.groups = [] # 추가
         self.class_num = 18
         self.setup()
 
     
     def setup(self):
+        cnt = 0 # 추가
         filenames = os.listdir(self.img_dir)
         for i in filenames:
             if not i.startswith("._"):
@@ -66,17 +71,22 @@ class MaskDataset(data.Dataset):
                 for j in img_name:
                     if not j.startswith('._'):
                         self.path.append(i+'/'+j)
-                        gender = 0 if i.split('_')[1] == 'male' else 1
-                        age = int(i.split('_')[3])
+                        id, gender, race, age = i.split('_')
+                        gender = 0 if gender == 'male' else 1
+                        age = int(age)
                         age_range = 0 if age < 30 else 1 if age < 60 else 2
                         if 'incorrect' in j:
                             mask = 1
                         elif 'mask' in j:
-                            mask=0
+                            mask = 0
                         elif 'normal' in j:
-                            mask=2
+                            mask = 2
                         self.label.append(mask * 6 + gender * 3 + age_range)
-                
+                        self.indexs.append(cnt) # 추가
+                        self.groups.append(id) # 추가
+                        cnt += 1 # 추가
+
+
     def __getitem__(self, index):
         y = self.label[index]
         img_path = self.path[index]
@@ -90,21 +100,36 @@ class MaskDataset(data.Dataset):
             tt = transforms.ToTensor()
             X = tt(img)
         return X, y
+
+
+    def split_dataset(self):
+        df = pd.DataFrame({"indexs":self.indexs, "groups":self.groups, "labels":self.label})
+
+        train, valid = train_test_apart_stratify(df, group="groups", stratify="labels", test_size=self.val_ratio)
+        train_index = train["indexs"].tolist()
+        valid_index = valid["indexs"].tolist()
+        return  [Subset(self, train_index), Subset(self, valid_index)]
         
+
     def __len__(self):
         return len(self.path)
 
-def getDataloader(dataset, train_idx, valid_idx, batch_size):
+def getDataloader(dataset, batch_size):
+    train_loader = torch.utils.data.DataLoader(
+        dataset,
+        batch_size=batch_size,
+        num_workers=4,
+        drop_last=True,
+        shuffle=True
+    )
+
+def getDataloader_split(dataset, batch_size):
+    train_dataset, val_dataset = dataset.split_dataset()
     # 인자로 전달받은 dataset에서 train_idx에 해당하는 Subset 추출
-    train_set = torch.utils.data.Subset(dataset,
-                                        indices=train_idx)
-    # 인자로 전달받은 dataset에서 valid_idx에 해당하는 Subset 추출
-    val_set   = torch.utils.data.Subset(dataset,
-                                        indices=valid_idx)
     
     # 추출된 Subset으로 DataLoader 생성
     train_loader = torch.utils.data.DataLoader(
-        train_set,
+        train_dataset,
         batch_size=batch_size,
         num_workers=4,
         drop_last=True,
@@ -112,7 +137,7 @@ def getDataloader(dataset, train_idx, valid_idx, batch_size):
     )
     
     val_loader = torch.utils.data.DataLoader(
-        val_set,
+        val_dataset,
         batch_size=batch_size,
         num_workers=4,
         drop_last=True,
