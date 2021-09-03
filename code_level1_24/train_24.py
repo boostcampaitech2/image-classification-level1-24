@@ -28,7 +28,6 @@ from albumentations.pytorch.transforms import ToTensorV2
 from torchvision import transforms
 from torchvision.transforms import Resize, ToTensor, Normalize, GaussianBlur, RandomRotation, ColorJitter
 from efficientnet_pytorch import EfficientNet
-from loss import create_criterion
 
 from dataset_24 import *
 
@@ -53,26 +52,11 @@ def train_24(data_dir, model_dir, args):
     ])
     dataset = MaskDataset(
         img_dir = data_dir,
+        val_ratio = 0.2,
         transform=albu_transform
     )
 
-    # train dataset과 validation dataset을 8:2 비율로 나눕니다.
-    n_val = int(len(dataset) * 0.2)
-    n_train = len(dataset) - n_val
-    train_dataset, val_dataset = data.random_split(dataset, [n_train, n_val])
-    train_loader = data.DataLoader(
-        train_dataset,
-        batch_size=args.batch_size,
-        num_workers=4, 
-        shuffle=True
-    )
-
-    val_loader = data.DataLoader(
-        val_dataset,
-        batch_size=args.batch_size,
-        num_workers=4,
-        shuffle=False
-    )
+    train_loader, val_loader = getDataloader_split(dataset, args.batch_size)
     loader={'train':train_loader, 'val':val_loader}
 
     # 모델 불러오기

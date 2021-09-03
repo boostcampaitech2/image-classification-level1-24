@@ -57,14 +57,10 @@ def train_all_data(data_dir, model_dir, args):
 
     dataset = MaskDataset(
         img_dir = data_dir,
+        val_ratio=0.2,
         transform=albu_transform,
     )
-    all_loader = data.DataLoader(
-        dataset,
-        batch_size=args.batch_size,
-        num_workers=4, 
-        shuffle=True
-    )
+    all_loader = getDataloader(dataset, args.batch_size)
 
     # backborn모델 불러오기
     vision_model = EfficientNet.from_pretrained('efficientnet-b7', num_classes=18)
